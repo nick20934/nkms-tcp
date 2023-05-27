@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import argparse
 import evdev
 import socket
@@ -19,18 +21,16 @@ if __name__ == '__main__':
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
         for device in devices:
             print(device.path, device.name, device.phys)
+
     else:
         dev = evdev.InputDevice(f'/dev/input/{mouse}')
         print(dev)
-
+        dev.grab()
+        print(dev.capabilities(True))
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         for event in dev.read_loop():
-            if event.type == evdev.ecodes.EV_REL:
-                d = "Y"
-                if event.code == evdev.ecodes.REL_X:
-                    d = "X"
+            data = [event.type, event.code, event.value]
+            print(data)
+            sock.sendto(bytes(f"{json.dumps(data)}\n", "utf-8"), (address, port))
 
-                data = {"T": "M", "D": d, "V": event.value}
-                print(data)
-                sock.sendto(bytes(f"{json.dumps(data)}\n", "utf-8"), (address, port))
