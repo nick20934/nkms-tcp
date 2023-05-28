@@ -35,7 +35,7 @@ class EventServer(socketserver.BaseRequestHandler):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Network Keyboard and Mouse Switch')
-    parser.add_argument('--address', '-a', type=str, help='port to listen on', default='localhost')
+    parser.add_argument('--address', '-a', type=str, help='port to listen on', default='0.0.0.0')
     parser.add_argument('--port', '-p', type=str, help='port to listen on', default=4545)
 
     args = parser.parse_args()
