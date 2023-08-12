@@ -19,8 +19,9 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         while 1:
             if self.request not in sockets:
                 sockets.append(self.request)
+                print(f'New connection: {self.request}')
 
-            self.request.send(b'test\n')
+            # self.request.send(bytes(f"{json.dumps(caps)}\n", "utf-8"))
 
             data = self.request.recv(1024)
             if not data:
@@ -95,6 +96,7 @@ def handle_events(device):
                 try:
                     sock.send(bytes(f"{json.dumps(data)}\n", "utf-8"))
                 except OSError:
+                    print(f'Dropped connection: {sock}')
                     del sockets[socket_index]
                     socket_index = -1
                     grabbing = False
@@ -122,7 +124,7 @@ if __name__ == '__main__':
     parser.add_argument('--port', '-p', type=str, help='port to listen on', default=4777)
     args = parser.parse_args()
 
-    print('Starting nkms ...')
+    print('Starting NKMS Server ...')
     port = int(args.port)
     address = args.address
 
