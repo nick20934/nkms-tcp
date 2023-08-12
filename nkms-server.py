@@ -3,12 +3,13 @@
 import argparse
 import socketserver
 import json
-import asyncio
 import evdev
 import threading
 
 toggle_key_down = False
-socket_index = 0
+grabbing = False
+grab_status = {}
+socket_index = -1
 sockets = []
 
 
@@ -19,7 +20,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
             if self.request not in sockets:
                 sockets.append(self.request)
 
-            self.request.send(b'test')
+            self.request.send(b'test\n')
 
             data = self.request.recv(1024)
             if not data:
@@ -40,49 +41,69 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         super(ThreadedTCPServer, self).server_bind()
 
 
-
-def get_next_socket():
-    global socket_index
-    if socket_index == len(sockets)-1:
-        socket_index = 0
-    else:
-        socket_index = socket_index+1
-
-
-async def start_tcp_server(address, port):
+def start_tcp_server(address, port):
     with ThreadedTCPServer((address, port), ThreadedTCPRequestHandler) as server:
         server.allow_reuse_address = True
-        # server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_thread = threading.Thread(target=server.serve_forever())
-        server_thread.daemon = True
-        server_thread.start()
+        server.serve_forever()
 
 
-async def handle_events(device):
-    print(1)
-    global socket_index, toggle_key_down
-    async for event in device.async_read_loop():
+def get_next_socket():
+    """
+    Set socket_index to next value to cycle through outputs
+    """
+    global socket_index, grabbing
+
+    if socket_index == len(sockets)-1:
+        socket_index = -1
+        grabbing = False
+    else:
+        socket_index = socket_index+1
+        grabbing = True
+
+
+def do_grabbing(grab_dev):
+    """
+    Grab / Ungrab device depending on value of `grabbing`
+    Also set status in `grab_status` since there's not an easy way
+    to check a devices grab status
+    """
+    if grabbing and grab_status[grab_dev.path] is False:
+        grab_dev.grab()
+        grab_status[grab_dev.path] = True
+    elif not grabbing and grab_status[grab_dev.path] is True:
+        grab_dev.ungrab()
+        grab_status[grab_dev.path] = False
+
+
+def handle_events(device):
+    """
+    Start loop to listen for device's events
+    """
+    global socket_index, toggle_key_down, grabbing
+    for event in device.async_read_loop():
+        do_grabbing(device)
         if event.code == 127:
+            # Context menu key
             if toggle_key_down:
-                # Context menu key
                 get_next_socket()
             toggle_key_down = not toggle_key_down
-        elif event.code == 88:
-            # F12
-            #mouse.ungrab()
-            #keyboard.ungrab()
-            exit()
         else:
             data = [event.type, event.code, event.value]
-            print(data)
-            if sockets:
+            # print(data)
+            if sockets and socket_index >= 0:
                 sock = sockets[socket_index]
-                if sock:
+                try:
                     sock.send(bytes(f"{json.dumps(data)}\n", "utf-8"))
-            #sock.sendto(bytes(f"{json.dumps(data)}\n", "utf-8"), (addresses[address_index], port))
+                except OSError:
+                    del sockets[socket_index]
+                    socket_index = -1
+                    grabbing = False
 
 
 def get_km_devices():
+    """
+    Get devices that have capabilities that look like a keyboard or mouse
+    """
     devs = []
     all_devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
     for dev in all_devices:
@@ -99,20 +120,28 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Network Keyboard and Mouse Switch')
     parser.add_argument('--address', '-a', type=str, help='port to listen on', default='0.0.0.0')
     parser.add_argument('--port', '-p', type=str, help='port to listen on', default=4777)
-
     args = parser.parse_args()
 
+    print('Starting nkms ...')
     port = int(args.port)
     address = args.address
 
+    print('Loading input devices ...')
     km_devs = get_km_devices()
+    threads = []
     for device in km_devs:
         km_dev = evdev.InputDevice(device.path)
-        # km_dev.grab()
         print(device.path)
-        asyncio.ensure_future(handle_events(km_dev))
+        grab_status[device.path] = False
+        thread = threading.Thread(target=handle_events, args=(km_dev,))
+        thread.start()
+        threads.append(thread)
 
-    asyncio.ensure_future(start_tcp_server(address, port))
+    print('Starting TCP server ...')
+    tcp_thread = threading.Thread(target=start_tcp_server, args=(address, port,))
+    tcp_thread.start()
+    threads.append(tcp_thread)
 
-    loop = asyncio.get_event_loop()
-    loop.run_forever()
+    print('Running ...')
+    for thread in threads:
+        thread.join()
