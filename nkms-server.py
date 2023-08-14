@@ -21,18 +21,27 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
                 sockets.append(self.request)
                 print(f'New connection: {self.request}')
 
-            # self.request.send(bytes(f"{json.dumps(caps)}\n", "utf-8"))
+            new_caps = {}
+            for dev in km_devs:
+                dev_caps = dev.capabilities()
+                for k in dev_caps.keys():
+                    if k not in new_caps.keys():
+                        new_caps[k] = []
+
+                    if k == 0:
+                        continue
+
+                    a = dev_caps[k]
+                    for v in a:
+                        if v not in new_caps[k]:
+                            new_caps[k].append(v)
+
+            data = bytes(f"{json.dumps(new_caps)}\n", "utf-8")
+            self.request.send(data)
 
             data = self.request.recv(1024)
             if not data:
                 break
-
-            # data = json.loads(data.strip())
-            # if not data:
-            #    continue
-
-            print(data)
-            print(sockets)
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

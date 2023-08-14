@@ -33,9 +33,18 @@ if __name__ == '__main__':
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         # Connect to server and send data
         sock.connect((server_address, port))
-        # sock.sendall(b'testing\n')
 
-        ui = UInput(capabilities, name='NetKMSwitch Keyboard and Mouse')
+        data = str(sock.recv(50000), "utf-8").strip()
+        try:
+            new_caps = {}
+            dev_caps = json.loads(data)
+            for k in dev_caps.keys():
+                new_caps[int(k)] = dev_caps[k]
+        except json.decoder.JSONDecodeError:
+            print('Error: Unable to load device capabilities. Falling back to defaults.')
+            new_caps = capabilities
+
+        ui = UInput(new_caps, name='NetKMSwitch Keyboard and Mouse')
 
         while 1:
             data = str(sock.recv(1024), "utf-8").strip().split("\n")
@@ -44,6 +53,7 @@ if __name__ == '__main__':
                     j_data = json.loads(line)
                 except json.decoder.JSONDecodeError:
                     print('Error: json decode failed')
+                    continue
 
                 ui.write(j_data[0], j_data[1], j_data[2])
                 ui.syn()
