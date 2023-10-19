@@ -4,6 +4,7 @@ import argparse
 import socketserver
 import json
 import evdev
+import evdev.ecodes as e
 import threading
 
 toggle_key_down = False
@@ -92,7 +93,7 @@ def handle_events(device):
     global socket_index, toggle_key_down, grabbing
     for event in device.async_read_loop():
         do_grabbing(device)
-        if event.code == 127:
+        if event.code == e.KEY_RIGHTCTRL:
             # Context menu key
             if toggle_key_down:
                 get_next_socket()
