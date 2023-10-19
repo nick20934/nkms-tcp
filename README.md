@@ -1,12 +1,14 @@
 # NKMS TCP
 
-`nkms-tcp` switches keyboard and mouse input between muliple computers connected via the network using TCP. This allows you to keep a single keyboard and mouse on your desk even if you are using mulitple computers at once. The right control key switches the input between machines.
+NKMS is an acronym for Network Keyboard Mouse Switch. `nkms-tcp` switches keyboard and mouse input between muliple computers connected via the network using TCP. This allows you to only have one keyboard and mouse on your desk even if you are using mulitple computers at once. The right control key switches the input between machines.
+
+There is virtually no lag when used with a good ethernet connection, but if you use it over wifi, be prepared to experience a few glitches, especially if the signal is weak.
 
 ## Usage
 
-The `nkms-server.py` script should be run on the machine the has the keyboard and mouse. The `nkms-client.py` script should be run on the machines you want to transfer that keyboard and mouse input to.
+The `nkms-server.py` script should be run on the machine that has the keyboard and mouse. The `nkms-client.py` script should be run on the machines to which you want to transfer that keyboard and mouse input.
 
-Both scripts must be run as root.
+Both scripts must be run as root. You will need to install `evdev` if it is not already present in your python environment.
 
 ### Server
 
