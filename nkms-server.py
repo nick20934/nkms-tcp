@@ -130,7 +130,7 @@ def get_km_devices():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Network Keyboard and Mouse Switch')
-    parser.add_argument('--address', '-a', type=str, help='port to listen on', default='0.0.0.0')
+    parser.add_argument('--address', '-a', type=str, help='address to bind to', default='0.0.0.0')
     parser.add_argument('--port', '-p', type=str, help='port to listen on', default=4777)
     args = parser.parse_args()
 
