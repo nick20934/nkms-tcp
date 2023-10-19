@@ -22,7 +22,7 @@ capabilities = {
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Network Keyboard and Mouse Switch')
-    parser.add_argument('--server', '-a', type=str, help='NKMS server to connect to', default='localhost')
+    parser.add_argument('--server', '-s', type=str, help='NKMS server to connect to', default='localhost')
     parser.add_argument('--port', '-p', type=str, help='port to connect to', default=4777)
     args = parser.parse_args()
 
