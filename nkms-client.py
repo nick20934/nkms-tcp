@@ -53,7 +53,7 @@ if __name__ == '__main__':
                     j_data = json.loads(line)
                 except json.decoder.JSONDecodeError:
                     print('Error: json decode failed')
-                    continue
+                    exit()
 
                 ui.write(j_data[0], j_data[1], j_data[2])
                 ui.syn()
